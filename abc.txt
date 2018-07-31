@@ -1,0 +1,225 @@
+method.......
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Web;
+
+namespace HCM_STATE
+{
+    public class Methodreq
+    {
+        public data.APIResponse requi1(datareq.statesinfo std,long rid=0)
+        {
+            SqlConnection conn = new SqlConnection("Server=LAPTOP-JCAR5DBL;DataBase=praju;Integrated Security=true;");
+            conn.Open();
+            data.APIResponse oReturn = new data.APIResponse();
+            Int32 opCode = 0;
+            try
+            {
+                using (SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "post_requisition";
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@rid", rid);
+                    cmd.Parameters.AddWithValue("@reqtitle", std.reqtitle);
+                    var vOPCode = cmd.Parameters.Add("@opcode", SqlDbType.BigInt);
+                    vOPCode.Direction = ParameterDirection.Output;
+                    var result = cmd.ExecuteNonQuery();
+                    opCode = Convert.ToInt32(vOPCode.Value);
+                    if (opCode > 0)
+                    {
+                        oReturn.RID = opCode;
+                        oReturn.Id = 1;
+                        oReturn.Code = "saved";
+                        oReturn.Message = "saved";
+
+                    }
+                    else if (opCode == -2)
+                    {
+                        oReturn.RID = opCode;
+                        oReturn.Id = -1;
+                        oReturn.Code = "DUPLICATE001";
+                        oReturn.Message = "Duplicate values not allowed";
+                    }
+                }
+
+            }
+
+
+            catch
+            {
+                oReturn.RID = opCode;
+                oReturn.Id = -1;
+                oReturn.Code = "Error";
+                oReturn.Message = "Server Error";
+            }
+            conn.Close();
+            return oReturn;
+        }
+        public DataTable getreq1(long rid = 0)
+        {
+            SqlConnection conn = new SqlConnection("Server=LAPTOP-JCAR5DBL;DataBase=praju;Integrated Security=true;");
+            conn.Open();
+            DataTable dt = new DataTable();// it stores the structure of table
+            using (SqlCommand cmd = new SqlCommand())
+            {
+                cmd.Connection = conn;
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandText = "get_req";
+                cmd.Parameters.AddWithValue("@RID", rid);
+                SqlDataAdapter sda = new SqlDataAdapter(cmd);
+                sda.Fill(dt);// fills table data
+                conn.Close();
+                return dt;
+            }
+        }
+
+    
+    }
+
+}
+  public DataTable getstatebyname1(string title = "")
+        {
+            SqlConnection conn = new SqlConnection("Server=LAPTOP-JCAR5DBL;DataBase=praju;Integrated Security=true;");
+            conn.Open();
+            DataTable dt = new DataTable();// it stores the structure of table
+            using (SqlCommand cmd = new SqlCommand())
+            {
+                cmd.Connection = conn;
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandText = "get_state";
+                cmd.Parameters.AddWithValue("@title", title);
+                cmd.Parameters.AddWithValue("@isname", 1);
+                SqlDataAdapter sda = new SqlDataAdapter(cmd);
+                sda.Fill(dt);// fills table data
+                conn.Close();
+                return dt;
+            }
+
+        }
+    }
+}
+ 
+
+data............
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+namespace HCM_STATE
+{
+    public class data
+    {
+        public class APIResponse
+        {
+            public int Id { get; set; }
+            public int RID { get; set; }
+            public string Code { get; set; }
+            public string Message { get; set; }
+
+        }
+
+        public class statesinfo
+        {
+            public int RID { get; set; }
+            public string title { get; set; }
+            public DateTime createdon { get; set; }
+            public int createdby { get; set; }
+            public DateTime modifiedon { get; set; }
+            public int modifiedby { get; set; }
+            public Boolean status { get; set; }
+            public DateTime effectivedate { get; set; }
+        }
+
+      
+    }
+}
+    
+   controller
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Web.Http;
+
+namespace HCM_STATE.Controllers
+{
+    [RoutePrefix("masters")]
+    public class MasterController : ApiController
+    {
+        
+            [Route("updatestate")]
+            [HttpPost]
+            public HttpResponseMessage UpdateStates([FromBody] HCM_STATE.data.statesinfo std)
+            {
+                HCM_STATE.Method obj1 = new HCM_STATE.Method();
+                var httpres = obj1.updatestates1(std);
+                if(httpres.Id ==-1)
+                {
+                    return Request.CreateResponse(HttpStatusCode.InternalServerError, httpres);
+
+                }
+                else
+                {
+                    return Request.CreateResponse(HttpStatusCode.Created, httpres);
+
+                }
+                
+            }
+            [Route("updatestate/{RID:long}")]
+            [HttpPut]
+            public HttpResponseMessage Updatestates([FromBody] HCM_STATE.data.statesinfo std, [FromUri] long RID)
+            {
+                HCM_STATE.Method obj1 = new HCM_STATE.Method();
+                var httpres = obj1.updatestates1(std, RID);
+                return Request.CreateResponse(HttpStatusCode.Created, httpres);
+
+
+            }
+
+            [Route("deletestate/{RID:long}")]
+            [HttpDelete]
+            public HttpResponseMessage deletestate([FromUri] long RID)
+            {
+                HCM_STATE.Method obj2 = new HCM_STATE.Method();
+                var httpres = obj2.deletestate1(RID);
+                return Request.CreateResponse(HttpStatusCode.Created, httpres);
+            }
+            [Route("getstate")]
+            [HttpGet]
+            public HttpResponseMessage getstate()
+            {
+                HCM_STATE.Method obj2 = new HCM_STATE.Method();
+                var httpres = obj2.getstate();
+                return Request.CreateResponse(HttpStatusCode.Created, httpres);
+
+            }
+
+            [Route("getstate/{rid:long}")]
+            [HttpGet]
+            public HttpResponseMessage getstate([FromUri] long RID = 0)
+            {
+                HCM_STATE.Method obj2 = new HCM_STATE.Method();
+                var httpres = obj2.getstate(RID);
+                return Request.CreateResponse(HttpStatusCode.Created, httpres);
+
+            }
+           [Route("getstatebyname")]
+            [HttpGet]
+            public HttpResponseMessage getstatebyname1([FromUri] string title="" )
+            {
+                HCM_STATE.Method obj2 = new HCM_STATE.Method();
+                var httpres = obj2.getstatebyname1(title);
+                return Request.CreateResponse(HttpStatusCode.Created, httpres);
+
+            }
+    }
+}
+   
+    
+    
